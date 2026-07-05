@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LeetCode Sync Settings</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            width: 300px;
+            padding: 15px;
+            background-color: #f9f9f9;
+        }
+        h2 {
+            font-size: 16px;
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 12px;
+        }
+        label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 4px;
+            color: #555;
+            font-weight: bold;
+        }
+        input[type="password"], input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #status {
+            margin-top: 10px;
+            font-size: 12px;
+            color: green;
+            text-align: center;
+            height: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Settings</h2>
+    
+    <div class="form-group">
+        <label for="githubToken">GitHub Personal Access Token</label>
+        <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxx">
+    </div>
+
+    <div class="form-group">
+        <label for="githubUsername">GitHub Username</label>
+        <input type="text" id="githubUsername" placeholder="e.g., torvalds">
+    </div>
+
+    <div class="form-group">
+        <label for="githubRepo">GitHub Repository</label>
+        <input type="text" id="githubRepo" placeholder="e.g., leetcode">
+    </div>
+
+    <div class="form-group">
+        <label for="groqApiKey">Groq API Key</label>
+        <input type="password" id="groqApiKey" placeholder="gsk_xxxxxxxxxxxx">
+    </div>
+
+    <button id="saveBtn">Save Settings</button>
+    <div id="status"></div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
