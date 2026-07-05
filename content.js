@@ -156,10 +156,19 @@ async function callGroq(prompt, apiKey, systemPrompt = "") {
     return data.choices[0].message.content;
 }
 
-async function uploadToGithub() {
+async function uploadToGithub(language = "unknown") {
     try {
+        const extMap = {
+            "cpp": "cpp", "java": "java", "python": "py", "python3": "py", "c": "c",
+            "csharp": "cs", "javascript": "js", "typescript": "ts", "php": "php",
+            "swift": "swift", "kotlin": "kt", "dart": "dart", "golang": "go",
+            "ruby": "rb", "scala": "scala", "rust": "rs", "racket": "rkt",
+            "erlang": "erl", "elixir": "ex", "mysql": "sql", "mssql": "sql", "oraclesql": "sql"
+        };
+        const ext = extMap[language] || "txt";
+
         const currentSlug = getSlug();
-        console.log("Starting upload process for:", currentSlug);
+        console.log("Starting upload process for:", currentSlug, "Language:", language);
         const settings = await getSettings();
         if (!settings.githubToken || !settings.githubUsername || !settings.githubRepo || !settings.groqApiKey) {
             console.error("Missing API Keys or Settings. Please check the extension popup.");
@@ -189,14 +198,20 @@ async function uploadToGithub() {
             for (const item of folderContents) {
                 if (item.type === 'dir' && item.name.startsWith('Method ')) {
                     methodCount++;
-                    // Fetch the code to compare
-                    const codeFile = await fetchGithub(`${item.path}/solution.java`, settings.githubToken, settings.githubUsername, settings.githubRepo);
-                    if (codeFile && codeFile.content) {
-                        try {
-                            const decodedCode = decodeURIComponent(escape(atob(codeFile.content)));
-                            existingMethodsCode.push(decodedCode);
-                        } catch (e) {
-                            console.error("Error decoding old code", e);
+                    // Fetch the code to compare by finding the file that starts with solution.
+                    const methodFolderContents = await fetchGithub(item.path, settings.githubToken, settings.githubUsername, settings.githubRepo);
+                    if (methodFolderContents && Array.isArray(methodFolderContents)) {
+                        const solutionFileMeta = methodFolderContents.find(f => f.name.startsWith('solution.'));
+                        if (solutionFileMeta) {
+                            const codeFile = await fetchGithub(solutionFileMeta.path, settings.githubToken, settings.githubUsername, settings.githubRepo);
+                            if (codeFile && codeFile.content) {
+                                try {
+                                    const decodedCode = decodeURIComponent(escape(atob(codeFile.content)));
+                                    existingMethodsCode.push(decodedCode);
+                                } catch (e) {
+                                    console.error("Error decoding old code", e);
+                                }
+                            }
                         }
                     }
                 }
@@ -235,7 +250,7 @@ async function uploadToGithub() {
         const aiExplanation = await callGroq(explainPrompt, settings.groqApiKey);
 
         // Upload Solution Code
-        await uploadFile(`${methodFolder}/solution.java`, code, `Add Solution for ${question.title} (Method ${nextMethod})`, settings.githubToken, settings.githubUsername, settings.githubRepo);
+        await uploadFile(`${methodFolder}/solution.${ext}`, code, `Add Solution for ${question.title} (Method ${nextMethod})`, settings.githubToken, settings.githubUsername, settings.githubRepo);
         
         // Upload AI README
         await uploadFile(`${methodFolder}/README.md`, aiExplanation, `Add Explanation for Method ${nextMethod}`, settings.githubToken, settings.githubUsername, settings.githubRepo);
@@ -252,7 +267,7 @@ window.addEventListener("message", async event => {
     if (event.source !== window) return;
 
     if (event.data?.source === "leetcode-sync" && event.data?.type === "accepted") {
-        console.log("Accepted Submission:", event.data.submissionId);
-        await uploadToGithub();
+        console.log("Accepted Submission:", event.data.submissionId, "Language:", event.data.lang);
+        await uploadToGithub(event.data.lang);
     }
 });
