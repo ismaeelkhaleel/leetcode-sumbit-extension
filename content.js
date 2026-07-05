@@ -156,7 +156,7 @@ async function callGroq(prompt, apiKey, systemPrompt = "") {
     return data.choices[0].message.content;
 }
 
-async function uploadToGithub(language = "unknown") {
+async function uploadToGithub(language = "unknown", code = null) {
     try {
         const extMap = {
             "cpp": "cpp", "java": "java", "python": "py", "python3": "py", "c": "c",
@@ -177,15 +177,21 @@ async function uploadToGithub(language = "unknown") {
 
         const data = await getQuestion(currentSlug);
         const question = data.data.question;
-        const code = await waitForCode();
 
-        if (!code) {
-            console.error("Code not found on page.");
+        let codeToUpload = code;
+        if (!codeToUpload) {
+            console.log("Code not found from intercept, falling back to DOM extraction...");
+            codeToUpload = await waitForCode(5000);
+        }
+
+        if (!codeToUpload) {
+            console.error("Code not found from submission or page.");
             return;
         }
 
         const questionNumber = question.questionFrontendId.padStart(4, '0');
-        const folder = `${questionNumber} - ${question.title}`;
+        const sanitizedTitle = question.title.replace(/[<>:"/\\|?*]/g, '');
+        const folder = `${questionNumber} - ${sanitizedTitle}`;
 
         // 1. Check existing folders and files
         const folderContents = await fetchGithub(folder, settings.githubToken, settings.githubUsername, settings.githubRepo);
@@ -228,7 +234,7 @@ async function uploadToGithub(language = "unknown") {
             console.log("Checking for duplicate approaches via AI...");
             for (const oldCode of existingMethodsCode) {
                 const systemPrompt = "You are an expert code logic analyzer. Compare Code A and Code B. If they use the exact same algorithm, time complexity, and underlying logic (even if variable names, function names, loops, or whitespaces are slightly modified), reply with exactly 'YES'. If the core algorithm or approach is fundamentally different (e.g., recursive vs iterative, or different data structure), reply with exactly 'NO'. Do not provide any explanation, just output YES or NO.";
-                const prompt = `Code A:\n${oldCode}\n\nCode B:\n${code}`;
+                const prompt = `Code A:\n${oldCode}\n\nCode B:\n${codeToUpload}`;
                 
                 const response = await callGroq(prompt, settings.groqApiKey, systemPrompt);
                 if (response.trim().toUpperCase().includes("YES")) {
@@ -246,11 +252,11 @@ async function uploadToGithub(language = "unknown") {
 
         // Generate AI explanation
         console.log("Generating AI explanation...");
-        const explainPrompt = `Explain the approach, time complexity, and space complexity of the following code for a LeetCode problem. Use Markdown format.\n\nCode:\n${code}`;
+        const explainPrompt = `Explain the approach, time complexity, and space complexity of the following code for a LeetCode problem. Use Markdown format.\n\nCode:\n${codeToUpload}`;
         const aiExplanation = await callGroq(explainPrompt, settings.groqApiKey);
 
         // Upload Solution Code
-        await uploadFile(`${methodFolder}/solution.${ext}`, code, `Add Solution for ${question.title} (Method ${nextMethod})`, settings.githubToken, settings.githubUsername, settings.githubRepo);
+        await uploadFile(`${methodFolder}/solution.${ext}`, codeToUpload, `Add Solution for ${question.title} (Method ${nextMethod})`, settings.githubToken, settings.githubUsername, settings.githubRepo);
         
         // Upload AI README
         await uploadFile(`${methodFolder}/README.md`, aiExplanation, `Add Explanation for Method ${nextMethod}`, settings.githubToken, settings.githubUsername, settings.githubRepo);
@@ -268,6 +274,6 @@ window.addEventListener("message", async event => {
 
     if (event.data?.source === "leetcode-sync" && event.data?.type === "accepted") {
         console.log("Accepted Submission:", event.data.submissionId, "Language:", event.data.lang);
-        await uploadToGithub(event.data.lang);
+        await uploadToGithub(event.data.lang, event.data.code);
     }
 });
