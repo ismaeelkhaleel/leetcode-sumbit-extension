@@ -1,8 +1,10 @@
 console.log("LeetCode Sync Loaded");
 
-const slug = window.location.pathname.split("/")[2];
+function getSlug() {
+    return window.location.pathname.split("/")[2];
+}
 
-console.log("Problem:", slug);
+console.log("LeetCode Sync Loaded for:", getSlug());
 
 // Inject page script
 const script = document.createElement("script");
@@ -56,7 +58,7 @@ async function waitForCode(timeout = 10000) {
     return null;
 }
 
-function generateReadme(question) {
+function generateReadme(question, currentSlug) {
     const tags = question.topicTags ? question.topicTags.map(tag => `- ${tag.name}`).join("\n") : "N/A";
     let companyTags = "Not Available";
     try {
@@ -73,7 +75,7 @@ ${question.difficulty}
 ${tags}
 
 ## URL
-https://leetcode.com/problems/${slug}/
+https://leetcode.com/problems/${currentSlug}/
 
 ## Problem Statement
 
@@ -156,14 +158,15 @@ async function callGroq(prompt, apiKey, systemPrompt = "") {
 
 async function uploadToGithub() {
     try {
-        console.log("Starting upload process...");
+        const currentSlug = getSlug();
+        console.log("Starting upload process for:", currentSlug);
         const settings = await getSettings();
         if (!settings.githubToken || !settings.githubUsername || !settings.githubRepo || !settings.groqApiKey) {
             console.error("Missing API Keys or Settings. Please check the extension popup.");
             return;
         }
 
-        const data = await getQuestion(slug);
+        const data = await getQuestion(currentSlug);
         const question = data.data.question;
         const code = await waitForCode();
 
@@ -201,7 +204,7 @@ async function uploadToGithub() {
         } else {
             // Upload main README.md if folder doesn't exist
             console.log("Uploading Root Problem README...");
-            const readme = generateReadme(question);
+            const readme = generateReadme(question, currentSlug);
             await uploadFile(`${folder}/README.md`, readme, `Add README for ${question.title}`, settings.githubToken, settings.githubUsername, settings.githubRepo);
         }
 
