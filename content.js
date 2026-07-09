@@ -13,8 +13,13 @@ document.documentElement.appendChild(script);
 script.remove();
 
 function getSettings() {
-    return new Promise((resolve) => {
-        chrome.storage.local.get(['githubToken', 'githubUsername', 'githubRepo', 'groqApiKey'], resolve);
+    return new Promise((resolve, reject) => {
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+            chrome.storage.local.get(['githubToken', 'githubUsername', 'githubRepo', 'groqApiKey'], resolve);
+        } else {
+            console.error("Extension context invalidated. Please refresh the LeetCode page.");
+            reject(new Error("Extension context invalidated. Please refresh the LeetCode page."));
+        }
     });
 }
 
@@ -252,8 +257,15 @@ async function uploadToGithub(language = "unknown", code = null) {
 
         // Generate AI explanation
         console.log("Generating AI explanation...");
-        const explainPrompt = `Explain the approach, time complexity, and space complexity of the following code for a LeetCode problem. Use Markdown format.\n\nCode:\n${codeToUpload}`;
-        const aiExplanation = await callGroq(explainPrompt, settings.groqApiKey);
+        const systemPromptForExplanation = `You are an expert developer explaining a LeetCode solution to a reader. Your tone must be instructional, clear, and professional—like a high-quality technical blog post. Do NOT talk about yourself or use overly enthusiastic diary-like phrases (e.g., avoid "I am excited to share", "I solved this by", "I do this"). Instead, focus on explaining the approach directly to the reader (e.g., use "Let's break down the approach", "We can solve this by", "Notice how we..."). Absolutely no robotic AI-speak. Naturally weave in relevant SEO keywords.`;
+        const explainPrompt = `Write a comprehensive, step-by-step explanation for the following LeetCode solution. Structure the Markdown to include:
+1. **Intuition & Approach**: Explain the core logic clearly and directly, as if teaching a concept to another developer.
+2. **Dry Run**: A mandatory, step-by-step dry run of the code with a simple example showing how variables change at each step.
+3. **Complexity Analysis**: Time and Space complexity with brief justification.
+
+Code:
+${codeToUpload}`;
+        const aiExplanation = await callGroq(explainPrompt, settings.groqApiKey, systemPromptForExplanation);
 
         // Upload Solution Code
         await uploadFile(`${methodFolder}/solution.${ext}`, codeToUpload, `Add Solution for ${question.title} (Method ${nextMethod})`, settings.githubToken, settings.githubUsername, settings.githubRepo);
