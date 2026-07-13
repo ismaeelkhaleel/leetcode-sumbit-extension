@@ -112,6 +112,9 @@ async function fetchGithub(path, token, owner, repo) {
         }
     });
     if (response.status === 404) return null;
+    if (!response.ok) {
+        throw new Error(`GitHub API Error: ${response.status} ${response.statusText}`);
+    }
     return response.json();
 }
 
@@ -134,6 +137,11 @@ async function uploadFile(path, content, message, token, owner, repo) {
         },
         body: JSON.stringify(body)
     });
+
+    if (!response.ok) {
+        throw new Error(`GitHub Upload Error: ${response.status} ${response.statusText}`);
+    }
+
     return response.json();
 }
 
