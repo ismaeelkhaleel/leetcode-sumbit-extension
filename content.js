@@ -246,7 +246,7 @@ async function uploadToGithub(language = "unknown", code = null) {
         if (existingMethodsCode.length > 0) {
             console.log("Checking for duplicate approaches via AI...");
             for (const oldCode of existingMethodsCode) {
-                const systemPrompt = "You are an expert code logic analyzer. Compare Code A and Code B. If they use the exact same algorithm, time complexity, and underlying logic (even if variable names, function names, loops, or whitespaces are slightly modified), reply with exactly 'YES'. If the core algorithm or approach is fundamentally different (e.g., recursive vs iterative, or different data structure), reply with exactly 'NO'. Do not provide any explanation, just output YES or NO.";
+                const systemPrompt = "You are an expert code logic analyzer. Compare Code A and Code B. If they use language, the exact same algorithm, time complexity, and underlying logic (even if variable names, function names, loops, or whitespaces are slightly modified), reply with exactly 'YES'. If the core algorithm or approach and language is fundamentally different (e.g., recursive vs iterative, or different data structure), reply with exactly 'NO'. Do not provide any explanation, just output YES or NO.";
                 const prompt = `Code A:\n${oldCode}\n\nCode B:\n${codeToUpload}`;
                 
                 const response = await callGroq(prompt, settings.groqApiKey, systemPrompt);
